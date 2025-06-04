@@ -8,3 +8,4 @@ down:
 	docker compose down
 sh:
 	docker exec -it $(FPM_CONTAINER) bash
+#
