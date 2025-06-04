@@ -1,0 +1,54 @@
+stages:
+  - lint
+  - test
+  - build
+  - security
+
+variables:
+  COMPOSER_ALLOW_SUPERUSER: 1
+
+# Etapa de Lint
+lint:
+  stage: lint
+  script:
+    - composer install --no-interaction
+    - ./vendor/bin/phpcs --standard=Symfony src/
+  allow_failure: false
+
+# Etapa de Test
+test:
+  stage: test
+  script:
+    - composer install --no-interaction
+    - ./vendor/bin/phpunit --coverage-text --coverage-clover=coverage.xml
+  artifacts:
+    paths:
+      - coverage.xml
+    expire_in: 1 week
+
+# Etapa de Build
+build:
+  stage: build
+  services:
+    - docker:dind
+  before_script:
+    - docker info
+    - docker compose --version
+    - docker compose build
+  script:
+    - docker compose up -d
+    - composer install --no-interaction
+    - php bin/console cache:warmup --env=prod
+  artifacts:
+    paths:
+      - public/build
+      - var/cache/prod
+
+# Etapa de Seguridad
+security:
+  stage: security
+  script:
+    - composer install --no-interaction
+    - ./vendor/bin/roave-security-advisories
+    - php bin/console security:check
+  allow_failure: true
